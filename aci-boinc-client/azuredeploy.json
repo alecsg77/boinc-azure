@@ -222,7 +222,7 @@
             "name": "[variables('containerName')]",
             "properties": {
               "image": "[variables('containerWithGpu')]",
-              "environmentVariables": ["[variables('environmentVariables')]"],
+              "environmentVariables": "[variables('environmentVariables')]",
               "ports": "[variables('ports')]",
               "resources": {
                 "requests": {
