@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND="noninteractive" \
     BOINC_CMD_LINE_OPTIONS=""
 
 # Copy files
-COPY bin/ /usr/bin/
+COPY boinc-client-azure/bin/ /usr/bin/
 
 # Configure
 WORKDIR /var/lib/boinc
