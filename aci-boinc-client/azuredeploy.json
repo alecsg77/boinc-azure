@@ -1,0 +1,429 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "comments": "This template was developed for demonstration purposes.",
+    "author": "Example Name"
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location of all the resouces."
+      }
+    },
+    "containerGroupName": {
+      "type": "string",
+      "defaultValue": "boinc-client",
+      "metadata": {
+        "description": "The name of the container group."
+      }
+    },
+    "numberCores": {
+      "type": "string",
+      "defaultValue": "1.0",
+      "metadata": {
+        "description": "The CPU request of the container instance."
+      }
+    },
+    "memoryInGB": {
+      "type": "string",
+      "defaultValue": "1.5",
+      "metadata": {
+        "description": "The memory request in GB of this container instance."
+      }
+    },
+    "gpuSku": {
+      "type": "string",
+      "allowedValues": ["(none)", "K80", "P100", "V100"],
+      "defaultValue": "(none)",
+      "metadata": {
+        "description": "The SKU of the GPU resource."
+      }
+    },
+    "numberGpus": {
+      "type": "int",
+      "defaultValue": 1,
+      "metadata": {
+        "description": "The count of the GPU resource."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[concat('store', uniquestring(resourceGroup().id))]",
+      "metadata": {
+        "description": "The name of the storage account that contains the Azure File share."
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_GRS",
+        "Standard_ZRS",
+        "Premium_LRS"
+      ],
+      "metadata": {
+        "description": "Storage Account type"
+      }
+    },
+    "fileShareName": {
+      "defaultValue": "[parameters('containerGroupName')]",
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Azure File share to be mounted as a volume."
+      }
+    },
+    "restartPolicy": {
+      "type": "string",
+      "allowedValues": ["always", "onFailure", "never"],
+      "defaultValue": "always",
+      "metadata": {
+        "description": "Restart policy for all containers within the container group."
+      }
+    },
+    "allowRemoteGuiRpc": {
+      "defaultValue": true,
+      "type": "bool",
+      "metadata": {
+        "description": "Allows connecting to the client with any IP address."
+      }
+    },
+    "guiRpcPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password what you need to use, when you connect to the BOINC client."
+      }
+    },
+    "dnsLabel": {
+      "defaultValue": "[concat(parameters('containerGroupName'), uniqueString(resourceGroup().id))]",
+      "type": "string",
+      "metadata": {
+        "description": "The Dns name label for the public IP."
+      }
+    }
+  },
+  "variables": {
+    "storageAccountName": "[parameters('storageAccountName')]",
+    "storageAccountType": "[parameters('storageAccountType')]",
+
+    "shareContainerGroupName": "[concat('createshare','_',parameters('containerGroupName'),'_',parameters('fileShareName'),'_', uniqueString(resourceGroup().id))]",
+    "fileShareName": "[parameters('fileShareName')]",
+
+
+    "containerGroupName": "[parameters('containerGroupName')]",
+    "location": "[parameters('location')]",
+    "containerName": "boinc-client",
+    "osType": "Linux",
+    "numberCores": "[float(parameters('numberCores'))]",
+    "memoryInGB": "[float(parameters('memoryInGB'))]",
+    "restartPolicy": "[parameters('restartPolicy')]",
+
+    "_publicIp": "[parameters('allowRemoteGuiRpc')]",
+    "environmentVariables": [
+      {
+        "name": "BOINC_CMD_LINE_OPTIONS",
+        "value": "--allow_remote_gui_rpc"
+      },
+      {
+        "name": "BOINC_GUI_RPC_PASSWORD",
+        "secureValue": "[parameters('guiRpcPassword')]"
+      }
+    ],
+    "ports": [{ "port": 31416, "protocol": "TCP" }],
+    "dnsLabel": "[parameters('dnsLabel')]",
+
+    "_withGpus": "[not(equals(parameters('gpuSku'),'(none)'))]",
+    "containerWithoutGpu": "boinc/client:latest",
+    "containerWithGpu": "boinc/client:nvidia",
+    "numberGpus": "[int(parameters('numberGpus'))]",
+    "gpuSku": "[parameters('gpuSku')]",
+
+    "_publicWithGpu": "[and(variables('_withGpus'),variables('_publicIp'))]",
+    "publicWithGpuName": "[if(variables('_publicWithGpu'), variables('containerGroupName'), 'publicWithGpu')]",
+    "_publicWithoutGpu": "[and(not(variables('_withGpus')),variables('_publicIp'))]",
+    "publicWithoutGpuName": "[if(variables('_publicWithoutGpu'), variables('containerGroupName'), 'publicWithoutGpu')]",
+    "_privateWithGpu": "[and(variables('_withGpus'),not(variables('_publicIp')))]",
+    "privateWithGpuName": "[if(variables('_privateWithGpu'), variables('containerGroupName'), 'privateWithGpu')]",
+    "_privateWithoutGpu": "[and(not(variables('_withGpus')),not(variables('_publicIp')))]",
+    "privateWithoutGpuName": "[if(variables('_privateWithoutGpu'), variables('containerGroupName'), 'privateWithoutGpu')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('storageAccountName')]",
+      "location": "[variables('location')]",
+      "apiVersion": "2018-07-01",
+      "sku": {
+        "name": "[variables('storageAccountType')]"
+      },
+      "kind": "StorageV2",
+      "properties": {}
+    },
+    {
+      "name": "[variables('shareContainerGroupName')]",
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2018-10-01",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('fileShareName')]",
+            "properties": {
+              "image": "microsoft/azure-cli",
+              "command": [
+                "az",
+                "storage",
+                "share",
+                "create",
+                "--name",
+                "[variables('fileShareName')]"
+              ],
+              "environmentVariables": [
+                {
+                  "name": "AZURE_STORAGE_KEY",
+                  "value": "[listKeys(variables('storageAccountName'),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+                },
+                {
+                  "name": "AZURE_STORAGE_ACCOUNT",
+                  "value": "[variables('storageAccountName')]"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "1",
+                  "memoryInGb": "1.5"
+                }
+              }
+            }
+          }
+        ],
+        "restartPolicy": "OnFailure",
+        "osType": "Linux"
+      }
+    },
+    {
+      "condition": "[variables('_publicWithGpu')]",
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2018-10-01",
+      "name": "[variables('publicWithGpuName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('containerName')]",
+            "properties": {
+              "image": "[variables('containerWithGpu')]",
+              "environmentVariables": ["[variables('environmentVariables')]"],
+              "ports": "[variables('ports')]",
+              "resources": {
+                "requests": {
+                  "cpu": "[variables('numberCores')]",
+                  "memoryInGB": "[variables('memoryInGB')]",
+                  "gpu": {
+                    "count": "[variables('numberGpus')]",
+                    "sku": "[variables('gpuSku')]"
+                  }
+                }
+              },
+              "volumeMounts": [
+                {
+                  "name": "azurefile",
+                  "mountPath": "/var/lib/boinc"
+                }
+              ]
+            }
+          }
+        ],
+        "restartPolicy": "[variables('restartPolicy')]",
+        "osType": "[variables('osType')]",
+        "volumes": [
+          {
+            "name": "azurefile",
+            "azureFile": {
+              "shareName": "[variables('fileShareName')]",
+              "storageAccountName": "[variables('storageAccountName')]",
+              "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+            }
+          }
+        ],
+        "ipAddress": {
+          "type": "Public",
+          "dnsNameLabel": "[variables('dnsLabel')]",
+          "ports": "[variables('ports')]"
+        }
+      }
+    },
+    {
+      "condition": "[variables('_publicWithoutGpu')]",
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2018-10-01",
+      "name": "[variables('publicWithoutGpuName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('containerName')]",
+            "properties": {
+              "image": "[variables('containerWithoutGpu')]",
+              "environmentVariables": "[variables('environmentVariables')]",
+              "ports": "[variables('ports')]",
+              "resources": {
+                "requests": {
+                  "cpu": "[variables('numberCores')]",
+                  "memoryInGB": "[variables('memoryInGB')]"
+                }
+              },
+              "volumeMounts": [
+                {
+                  "name": "azurefile",
+                  "mountPath": "/var/lib/boinc"
+                }
+              ]
+            }
+          }
+        ],
+        "restartPolicy": "[variables('restartPolicy')]",
+        "osType": "[variables('osType')]",
+        "volumes": [
+          {
+            "name": "azurefile",
+            "azureFile": {
+              "shareName": "[variables('fileShareName')]",
+              "storageAccountName": "[variables('storageAccountName')]",
+              "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+            }
+          }
+        ],
+        "ipAddress": {
+          "type": "Public",
+          "dnsNameLabel": "[variables('dnsLabel')]",
+          "ports": "[variables('ports')]"
+        }
+      }
+    },
+    {
+      "condition": "[variables('_privateWithGpu')]",
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2018-10-01",
+      "name": "[variables('privateWithGpuName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('containerName')]",
+            "properties": {
+              "image": "[variables('containerWithGpu')]",
+              "environmentVariables": [],
+              "ports": [],
+              "resources": {
+                "requests": {
+                  "cpu": "[variables('numberCores')]",
+                  "memoryInGB": "[variables('memoryInGB')]",
+                  "gpu": {
+                    "count": "[variables('numberGpus')]",
+                    "sku": "[variables('gpuSku')]"
+                  }
+                }
+              },
+              "volumeMounts": [
+                {
+                  "name": "azurefile",
+                  "mountPath": "/var/lib/boinc"
+                }
+              ]
+            }
+          }
+        ],
+        "restartPolicy": "[variables('restartPolicy')]",
+        "osType": "[variables('osType')]",
+        "volumes": [
+          {
+            "name": "azurefile",
+            "azureFile": {
+              "shareName": "[variables('fileShareName')]",
+              "storageAccountName": "[variables('storageAccountName')]",
+              "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[variables('_privateWithoutGpu')]",
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2018-10-01",
+      "name": "[variables('privateWithoutGpuName')]",
+      "location": "[variables('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
+      ],
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('containerName')]",
+            "properties": {
+              "image": "[variables('containerWithoutGpu')]",
+              "environmentVariables": [],
+              "ports": [],
+              "resources": {
+                "requests": {
+                  "cpu": "[variables('numberCores')]",
+                  "memoryInGB": "[variables('memoryInGB')]"
+                }
+              },
+              "volumeMounts": [
+                {
+                  "name": "azurefile",
+                  "mountPath": "/var/lib/boinc"
+                }
+              ]
+            }
+          }
+        ],
+        "restartPolicy": "[variables('restartPolicy')]",
+        "osType": "[variables('osType')]",
+        "volumes": [
+          {
+            "name": "azurefile",
+            "azureFile": {
+              "shareName": "[variables('fileShareName')]",
+              "storageAccountName": "[variables('storageAccountName')]",
+              "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts',variables('storageAccountName')),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    },
+    "siteFQDN": {
+      "type": "string",
+      "condition": "[variables('_publicWithGpu')]",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups/', variables('publicWithGpuName'))).ipAddress.fqdn]"
+    },
+    "siteFQDN": {
+      "type": "string",
+      "condition": "[variables('_publicWithoutGpu')]",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups/', variables('publicWithoutGpuName'))).ipAddress.fqdn]"
+    }
+  }
+}

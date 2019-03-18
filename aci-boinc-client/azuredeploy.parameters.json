@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "[resourceGroup().location]"
+    },
+    "containerGroupName": {
+      "value": "boinc-client"
+    },
+    "numberCores": {
+      "value": "1.0"
+    },
+    "memoryInGB": {
+      "value": "1.5"
+    },
+    "gpuSku": {
+      "value": "(none)"
+    },
+    "numberGpus": {
+      "value": 1
+    },
+    "storageAccountName": {
+      "value": "[concat('store', uniquestring(resourceGroup().id))]"
+    },
+    "storageAccountType": {
+      "value": "Standard_LRS"
+    },
+    "fileShareName": {
+      "value": "[parameters('containerGroupName')]"
+    },
+    "restartPolicy": {
+      "value": "always"
+    },
+    "allowRemoteGuiRpc": {
+      "value": true
+    },
+    "guiRpcPassword": {
+      "value": null
+    },
+    "dnsLabel": {
+      "value": "[concat(parameters('containerGroupName'), uniqueString(resourceGroup().id))]"
+    }
+  }
+}
