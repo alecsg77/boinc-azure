@@ -137,7 +137,7 @@
 
     "_withGpus": "[not(equals(parameters('gpuSku'),'(none)'))]",
     "containerWithoutGpu": "boinc/client:latest",
-    "containerWithGpu": "boinc/client:nvidia",
+    "containerWithGpu": "alecsg77/boinc-azure",
     "numberGpus": "[int(parameters('numberGpus'))]",
     "gpuSku": "[parameters('gpuSku')]",
 
