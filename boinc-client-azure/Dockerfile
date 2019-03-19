@@ -1,6 +1,6 @@
-FROM nvidia/cuda:10.1-base-ubuntu18.04
+FROM nvidia/cuda:9.0-base-ubuntu16.04
 
-LABEL maintainer="Alecsg77" \
+LABEL maintainer="alecsg77" \
       description="A base container image for lightweight azure BOINC clients"
 
 # Global environment settings
