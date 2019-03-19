@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install BOINC Client
     add-apt-repository -y ppa:costamagnagianfranco/boinc && \
     apt-get update && apt-get install -y --no-install-recommends \
-    boinc-client-nvidia-cuda && \
+    libcuda1-384 boinc-client-nvidia-cuda && \
 # Install Nvidia OpenCL
     add-apt-repository -y ppa:graphics-drivers && \
     apt-get update && apt-get install -y --install-recommends \
