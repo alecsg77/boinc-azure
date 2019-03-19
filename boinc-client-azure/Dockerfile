@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install BOINC Client
     add-apt-repository -y ppa:costamagnagianfranco/boinc && \
     apt-get update && apt-get install -y --no-install-recommends \
-    boinc-client && \
+    boinc-client-nvidia-cuda && \
 # Install Nvidia OpenCL
     add-apt-repository -y ppa:graphics-drivers && \
     apt-get update && apt-get install -y --install-recommends \
@@ -35,4 +35,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
-CMD ["start-boinc.sh"]
+CMD ["/usr/bin/start-boinc.sh"]
