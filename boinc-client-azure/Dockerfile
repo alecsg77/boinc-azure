@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-base-ubuntu16.04
+FROM nvidia/cuda:9.0-runtime-ubuntu16.04
 
 LABEL maintainer="alecsg77" \
       description="A base container image for lightweight azure BOINC clients"
@@ -22,10 +22,12 @@ EXPOSE 31416
 RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install PPA dependency
     software-properties-common && \
+# Fix Nvidia broken package
+    mkdir /usr/lib/nvidia && \
 # Install BOINC Client
     add-apt-repository -y ppa:costamagnagianfranco/boinc && \
     apt-get update && apt-get install -y --no-install-recommends \
-    libcuda1-384 boinc-client-nvidia-cuda && \
+    boinc-client-nvidia-cuda && \
 # Install Nvidia OpenCL
     add-apt-repository -y ppa:graphics-drivers && \
     apt-get update && apt-get install -y --install-recommends \
@@ -33,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Cleaning up
     apt-get remove -y software-properties-common && \
     apt-get autoremove -y && \
+    rm -rf /usr/lib/nvidia && \
     rm -rf /var/lib/apt/lists/*
 
 CMD ["/usr/bin/start-boinc.sh"]
