@@ -21,7 +21,7 @@
       "value": 1
     },
     "storageAccountName": {
-      "value": "[concat('store', uniquestring(resourceGroup().id))]"
+      "value": "[concat('storage', uniquestring(resourceGroup().id))]"
     },
     "storageAccountType": {
       "value": "Standard_LRS"
@@ -39,7 +39,7 @@
       "value": null
     },
     "dnsLabel": {
-      "value": "[concat(parameters('containerGroupName'), uniqueString(resourceGroup().id))]"
+      "value": "[concat(parameters('containerGroupName'), uniqueString(resourceGroup().id, deployment().name))]"
     }
   }
 }

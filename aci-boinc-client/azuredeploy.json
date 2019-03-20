@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "metadata": {
     "comments": "This template was developed for demonstration purposes.",
-    "author": "Example Name"
+    "author": "alecsg77"
   },
   "parameters": {
     "location": {
@@ -51,7 +51,7 @@
     },
     "storageAccountName": {
       "type": "string",
-      "defaultValue": "[concat('store', uniquestring(resourceGroup().id))]",
+      "defaultValue": "[concat('storage', uniquestring(resourceGroup().id))]",
       "metadata": {
         "description": "The name of the storage account that contains the Azure File share."
       }
@@ -98,7 +98,7 @@
       }
     },
     "dnsLabel": {
-      "defaultValue": "[concat(parameters('containerGroupName'), uniqueString(resourceGroup().id))]",
+      "defaultValue": "[concat(parameters('containerGroupName'), uniqueString(resourceGroup().id, deployment().name))]",
       "type": "string",
       "metadata": {
         "description": "The Dns name label for the public IP."
@@ -109,9 +109,7 @@
     "storageAccountName": "[parameters('storageAccountName')]",
     "storageAccountType": "[parameters('storageAccountType')]",
 
-    "shareContainerGroupName": "[concat('createshare','_',parameters('containerGroupName'),'_',parameters('fileShareName'),'_', uniqueString(resourceGroup().id))]",
     "fileShareName": "[parameters('fileShareName')]",
-
 
     "containerGroupName": "[parameters('containerGroupName')]",
     "location": "[parameters('location')]",
@@ -163,7 +161,7 @@
       "properties": {}
     },
     {
-      "name": "[variables('shareContainerGroupName')]",
+      "name": "azure-cli",
       "type": "Microsoft.ContainerInstance/containerGroups",
       "apiVersion": "2018-10-01",
       "location": "[variables('location')]",
@@ -173,7 +171,7 @@
       "properties": {
         "containers": [
           {
-            "name": "[variables('fileShareName')]",
+            "name": "azure-cli",
             "properties": {
               "image": "microsoft/azure-cli",
               "command": [
@@ -187,7 +185,7 @@
               "environmentVariables": [
                 {
                   "name": "AZURE_STORAGE_KEY",
-                  "value": "[listKeys(variables('storageAccountName'),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+                  "secureValue": "[listKeys(variables('storageAccountName'),providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
                 },
                 {
                   "name": "AZURE_STORAGE_ACCOUNT",
@@ -213,9 +211,7 @@
       "apiVersion": "2018-10-01",
       "name": "[variables('publicWithGpuName')]",
       "location": "[variables('location')]",
-      "dependsOn": [
-        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
-      ],
+      "dependsOn": ["Microsoft.ContainerInstance/containerGroups/azure-cli"],
       "properties": {
         "containers": [
           {
@@ -268,9 +264,7 @@
       "apiVersion": "2018-10-01",
       "name": "[variables('publicWithoutGpuName')]",
       "location": "[variables('location')]",
-      "dependsOn": [
-        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
-      ],
+      "dependsOn": ["Microsoft.ContainerInstance/containerGroups/azure-cli"],
       "properties": {
         "containers": [
           {
@@ -319,9 +313,7 @@
       "apiVersion": "2018-10-01",
       "name": "[variables('privateWithGpuName')]",
       "location": "[variables('location')]",
-      "dependsOn": [
-        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
-      ],
+      "dependsOn": ["Microsoft.ContainerInstance/containerGroups/azure-cli"],
       "properties": {
         "containers": [
           {
@@ -369,9 +361,7 @@
       "apiVersion": "2018-10-01",
       "name": "[variables('privateWithoutGpuName')]",
       "location": "[variables('location')]",
-      "dependsOn": [
-        "[concat('Microsoft.ContainerInstance/containerGroups/', variables('shareContainerGroupName'))]"
-      ],
+      "dependsOn": ["Microsoft.ContainerInstance/containerGroups/azure-cli"],
       "properties": {
         "containers": [
           {
