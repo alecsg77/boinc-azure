@@ -1,0 +1,14 @@
+version: 2
+updates:
+- package-ecosystem: docker
+  directory: "/boinc-client-azure"
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: nvidia/cuda
+    versions:
+    - 11.2.0.pre.runtime.pre.ubuntu18.04
+    - 11.2.1.pre.runtime.pre.ubuntu18.04
+    - 11.2.2.pre.runtime.pre.ubuntu18.04
