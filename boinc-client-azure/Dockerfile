@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.2-runtime-ubuntu18.04
+FROM nvidia/cuda:11.4.0-runtime-ubuntu18.04
 
 LABEL maintainer="alecsg77" \
       description="A base container image for lightweight azure BOINC clients"
